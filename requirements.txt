@@ -1,0 +1,8 @@
+streamlit
+pandas
+numpy
+requests
+google-generativeai
+protobuf==3.20.3
+altair==4.2.2
+python-dotenv
