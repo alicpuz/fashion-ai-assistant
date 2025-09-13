@@ -104,9 +104,13 @@ streamlit run app.py
 ## How to Use the Application
 
 ### 1. Fill out the form with your preferences
+![form](screenshots/form.png)
 
 ### 2. Click "Find me an outfit!"
+![button](screenshots/button.png)
 
 ### 3. Wait for the AI's response
+![wait](screenshots/wait.png)
 
-### 4. Explore AI's Recommendations
+### 4. Explore AI's recommendations
+![recommendations](screenshots/recommendations.png)
