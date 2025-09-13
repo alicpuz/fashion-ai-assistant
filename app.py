@@ -4,12 +4,10 @@ import google.generativeai as genai
 import os
 import random
 from dotenv import load_dotenv
-import re  # We'll need this for parsing Gemini's JSON output
+import re
 
-# --- Load environment variables from .env file ---
 load_dotenv()
 
-# --- 1. Google Gemini API Configuration ---
 api_key = os.getenv("GEMINI_API_KEY")
 
 st.set_page_config(layout="wide", page_title="AI Style Advisor")
@@ -23,8 +21,7 @@ else:
 
 model = genai.GenerativeModel('gemini-2.5-flash')
 
-# --- 2. Loading Product Data ---
-DATA_FILE = 'fashion_products_tagged.json'  # Loading the tagged file
+DATA_FILE = 'fashion_products_tagged.json'
 products_data = []
 try:
     with open(DATA_FILE, 'r', encoding='utf-8') as f:
@@ -36,8 +33,6 @@ except json.JSONDecodeError:
     st.error(f"Error: Failed to load '{DATA_FILE}'. Check if it's a valid JSON.")
     st.stop()
 
-
-# --- 3. Helper function for finding products (now using generated tags) ---
 def find_products_by_criteria(criteria, num_results=20):
     """
     Finds a pool of potential products based on criteria, leveraging occasion_tags and style_tags.
@@ -47,33 +42,27 @@ def find_products_by_criteria(criteria, num_results=20):
     for product in products_data:
         match = True
 
-        # Filter by gender
         if 'gender' in criteria and criteria['gender'] and criteria['gender'].lower() != 'any' and product[
             'gender'].lower() != criteria['gender'].lower():
             match = False
 
-        # Filter by category (if not 'Full outfit' or 'Any')
         if 'category' in criteria and criteria['category'] and criteria['category'].lower() != 'any' and criteria[
             'category'].lower() != 'full outfit':
             if product['category'].lower() != criteria['category'].lower():
                 match = False
 
-        # Filter by price (max_price for individual items)
         if 'max_price' in criteria and product['price'] > criteria['max_price']:
             match = False
 
-        # Filter by color (simple text match)
         if 'color' in criteria and criteria['color'] and criteria['color'].lower() != 'any':
             if criteria['color'].lower() not in product['color'].lower():
                 match = False
 
-        # Filter by occasion tags (now using the generated tags!)
         if 'occasion_tags' in criteria and criteria['occasion_tags']:
             if not any(tag.lower() in [ot.lower() for ot in product.get('occasion_tags', [])] for tag in
                        criteria['occasion_tags']):
                 match = False
 
-        # Filter by style tags (now using the generated tags!)
         if 'style_tags' in criteria and criteria['style_tags']:
             if not any(tag.lower() in [st.lower() for st in product.get('style_tags', [])] for tag in
                        criteria['style_tags']):
@@ -82,12 +71,9 @@ def find_products_by_criteria(criteria, num_results=20):
         if match:
             found_products.append(product)
 
-    # Shuffle and return a limited number of results to pass to Gemini
     random.shuffle(found_products)
     return found_products[:min(len(found_products), num_results)]
 
-
-# --- 4. Streamlit Interface ---
 
 st.title("👗 AI Style Advisor")
 st.markdown("Your personal fashion assistant. Tell me what you need, and I'll find the perfect outfit!")
@@ -124,11 +110,9 @@ with col2:
 if st.button("Find me an outfit!"):
     with st.spinner("AI is analyzing your preferences and searching for the ideal styling..."):
 
-        # --- Krok 1: Wstępne wyszukiwanie produktów (Retrieval) ---
-        # Znajdź pulę potencjalnych produktów z naszej bazy, które pasują do ogólnych kryteriów
         retrieval_criteria = {
             'gender': user_gender if user_gender != 'Any' else None,
-            'max_price': user_budget,  # Początkowo limit na pojedynczy produkt, Gemini skoryguje to dla Full outfit
+            'max_price': user_budget,
             'category': user_category if user_category != 'Full outfit' and user_category != 'Any' else None,
             'color': user_color if user_color else None,
             'occasion_tags': selected_occasion_tags,
@@ -136,14 +120,13 @@ if st.button("Find me an outfit!"):
         }
 
         potential_products = find_products_by_criteria(retrieval_criteria,
-                                                       num_results=30)  # Pobierz np. 30 potencjalnych produktów
+                                                       num_results=30)
 
         if not potential_products:
             st.warning(
                 "No potential products found in our database matching your initial criteria. Try broadening your search.")
             st.stop()
 
-        # Sformatuj potencjalne produkty do przekazania Gemini jako kontekst
         products_context = ""
         for i, prod in enumerate(potential_products):
             products_context += f"""
@@ -161,7 +144,6 @@ if st.button("Find me an outfit!"):
             - Style Tags: {', '.join(prod.get('style_tags', []))}
             """
 
-        # --- Krok 2: Ulepszony Prompt dla Gemini (Augmented Generation + Structured Output) ---
         budget_instruction = ""
         if user_category == "Full outfit":
             budget_instruction = f"The suggested products should form a complete outfit, and their TOTAL price MUST NOT EXCEED {user_budget} PLN. Select 3-5 distinct products."
@@ -227,7 +209,6 @@ if st.button("Find me an outfit!"):
             response = model.generate_content(prompt)
             ai_raw_response = response.text
 
-            # --- Krok 3: Parsowanie Structured Output z Gemini ---
             json_match = re.search(r'```json\n({.*?})\n```', ai_raw_response, re.DOTALL)
 
             if json_match:
@@ -245,14 +226,12 @@ if st.button("Find me an outfit!"):
                 total_cost_ai_suggested = 0.0
                 display_products = []
 
-                # Verify if the products suggested by AI actually exist in our pool (safety check)
-                # and collect their details including image_url and purchase_link
+
                 for ai_prod in suggested_products_from_ai:
                     found_in_db = next((p for p in potential_products if
                                         p['product_name'] == ai_prod['name'] and p['category'] == ai_prod['category']),
                                        None)
                     if found_in_db:
-                        # Use details from our database for safety/consistency
                         display_products.append(found_in_db)
                         total_cost_ai_suggested += found_in_db['price']
                     else:

@@ -5,10 +5,8 @@ import time
 from dotenv import load_dotenv
 import re
 
-# --- Load environment variables from .env file ---
 load_dotenv()
 
-# --- 1. Google Gemini API Configuration ---
 api_key = os.getenv("GEMINI_API_KEY")
 
 if api_key:
@@ -18,17 +16,13 @@ else:
     print("Ensure you have a `.env` file in the project root with `GOOGLE_API_KEY=YOUR_GEMINI_API_KEY`.")
     exit()
 
-# Initialize Gemini model
-# We are sticking with gemini-2.5-flash as it's the only available model.
+
 model = genai.GenerativeModel('gemini-2.5-flash')
 
-# --- File Paths ---
-INPUT_JSON_FILE = 'fashion_products.json'  # Load the filtered file
-OUTPUT_JSON_FILE_TAGGED = 'fashion_products_tagged.json'  # Save new file with tags
+INPUT_JSON_FILE = 'fashion_products.json'
+OUTPUT_JSON_FILE_TAGGED = 'fashion_products_tagged.json'
 
-# --- Processing Parameters ---
-# DAILY LIMIT: 250 requests.
-# PER-MINUTE LIMIT: 10 requests.
+
 
 MAX_PRODUCTS_TO_PROCESS = 240  # Set to slightly less than daily limit to be safe.
 BATCH_SIZE = 5  # Process very small batches to avoid hitting per-minute limit.
